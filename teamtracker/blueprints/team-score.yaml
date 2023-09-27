@@ -116,12 +116,7 @@ action:
               {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[0][5:7] | int(base=16) }}
             {% endif %}
         target:
-          entity_id:
-            - light.tv_lights_2
-            - light.ceiling_fan
-            - light.office_ceiling_lights
-            - light.office_leds_mintransitionlight
-            - light.tall_light_mintransitionlight
+          entity_id: !input light_targets
       - delay:
           seconds: 1.5
       - service: light.turn_on
