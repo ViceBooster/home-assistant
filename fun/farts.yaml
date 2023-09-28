@@ -1,0 +1,105 @@
+alias: Fart
+description: Randomized TTS and Sound Effects
+trigger:
+  - device_id: e0f90140b7de523b472e6d324b87c337
+    domain: zha
+    platform: device
+    type: remote_button_long_press
+    subtype: button
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: media_player.living_room_speaker
+            state: "off"
+        sequence:
+          - service: media_player.volume_mute
+            data:
+              entity_id: media_player.living_room_speaker
+              is_volume_muted: true
+          - service: media_player.turn_on
+            target:
+              entity_id: media_player.living_room_speaker
+            data: {}
+          - wait_template: "{{ is_state('media_player.living_room_speaker', 'idle') }}"
+      - conditions:
+          - condition: state
+            entity_id: media_player.living_room_speaker
+            state: idle
+        sequence:
+          - service: media_player.volume_mute
+            data:
+              entity_id: media_player.living_room_speaker
+              is_volume_muted: false
+    default: []
+  - service: media_player.volume_mute
+    data:
+      entity_id: media_player.living_room_speaker
+      is_volume_muted: true
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 1
+    enabled: false
+  - service: media_player.volume_mute
+    data:
+      entity_id: media_player.living_room_speaker
+      is_volume_muted: false
+  - service: media_player.play_media
+    target:
+      entity_id: media_player.living_room_speaker
+    data_template:
+      media_content_id: >
+        {%- set phrases = [
+          "I am about to fart!",
+          "My stomach hurts",
+          "I'm feeling a touch bloated.",
+          "Oh no.",
+          "I feel unwell.",
+          "My ass...",
+          "Is something burning?",
+          "I'm launching a new fragrance",
+          "Did you hear that?"
+        ] -%} {%- set selected_phrase = phrases|random -%}
+        media-source://tts/google_translate?message={{ selected_phrase|replace('
+        ', '+') }}&language=en-gb
+      media_content_type: provider
+    metadata:
+      title_template: "{{ selected_phrase }}"
+      thumbnail: https://brands.home-assistant.io/_/google_translate/logo.png
+      media_class: app
+      children_media_class: null
+      navigateIds:
+        - {}
+        - media_content_type: app
+          media_content_id: media-source://tts
+        - media_content_type: provider
+          media_content_id_template: >-
+            media-source://tts/google_translate?message={{
+            selected_phrase|replace(' ', '+') }}&language=en-gb
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 2
+      milliseconds: 0
+  - service: media_player.play_media
+    target:
+      entity_id: media_player.living_room_speaker
+    data_template:
+      media_content_id: >
+        {%- set sound_effects = [
+          "media-source://media_source/local/fart-01.mp3",
+          "https://www.soundjay.com/human/sounds/fart-08.mp3",
+          "https://www.soundjay.com/human/sounds/fart-05.mp3",
+          "https://www.soundjay.com/human/sounds/fart-03.mp3",
+          "https://www.soundjay.com/human/sounds/fart-02.mp3",
+          "https://www.soundjay.com/human/sounds/fart-01.mp3",
+          "https://www.soundjay.com/human/sounds/fart-squeak-01.mp3",
+          "https://www.soundjay.com/human/sounds/fart-squeak-02.mp3",
+          "https://www.soundjay.com/human/sounds/fart-squeak-03.mp3",
+        ] -%} {%- set selected_sound_effect = sound_effects|random -%} {{
+        selected_sound_effect }}
+      media_content_type: audio/mpeg
+mode: single
