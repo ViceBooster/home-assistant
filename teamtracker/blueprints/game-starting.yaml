@@ -1,9 +1,7 @@
 blueprint:
   domain: automation
   name: "Sports: Start Monitor"
-  description: 'Flashes lights and plays media based with team colors provided by the API when the game starts. 
-  This blueprint requires the ha-teamtracker intregration and at least one team setup as a sensor/intergration.
-  '
+  description: 'Flashes lights based on team colors provided by the API when the game starts. Also plays a media file.'
   input:
     teams:
       name: Teams
@@ -75,22 +73,28 @@ action:
       sequence:
         - service: light.turn_on
           data:
-            rgb_color: >-
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[0][1:3] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[0][3:5] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[0][5:7] | int(base=16) }}
+            rgb_color: >
+              {% set color_str = state_attr(trigger.entity_id, 'team_colors')[0] %}
+              {% if color_str %}
+                {{ [color_str[1:3] | int(base=16), color_str[3:5] | int(base=16), color_str[5:7] | int(base=16)] }}
+              {% else %}
+                [255, 255, 255]  # default white color in case of None
+              {% endif %}
           target: !input light_targets
         - delay:
-            seconds: 1.5
+            seconds: 3
         - service: light.turn_on
           data:
-            rgb_color: >-
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[1][1:3] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[1][3:5] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[1][5:7] | int(base=16) }}
+            rgb_color: >
+              {% set color_str = state_attr(trigger.entity_id, 'team_colors')[0] %}
+              {% if color_str %}
+                {{ [color_str[1:3] | int(base=16), color_str[3:5] | int(base=16), color_str[5:7] | int(base=16)] }}
+              {% else %}
+                [255, 255, 255]  # default white color in case of None
+              {% endif %}
           target: !input light_targets
         - delay:
-            seconds: 1.5
+            seconds: 3
   - service: scene.turn_on
     target:
       entity_id: scene.team_game_start_lights_capture
