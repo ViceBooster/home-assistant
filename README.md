@@ -13,4 +13,4 @@ When a team scores, this blueprint activates. It creates a scene, saves the stat
 ### Game Starting Alert
 [View Blueprint](https://github.com/ViceBooster/home-assistant/blob/main/teamtracker/blueprints/game-starting.yaml)
 
-~~This blueprint provides timely announcements leading up to the start of a game. It alerts users at 60, 30, and 10 minutes prior to kickoff (or tip-off, start, etc.).~~ This bluerpint flashes in the team's colors while playing a specific media file from a URL (mp3) to heighten the anticipation. Just like the Team Score blueprint, this too requires the [`ha-teamtracker`](https://github.com/vasqued2/ha-teamtracker/) integration.
+This bluerpint flashes in the team's colors while playing a specific media file from a URL (mp3) to heighten the anticipation. Just like the Team Score blueprint, this too requires the [`ha-teamtracker`](https://github.com/vasqued2/ha-teamtracker/) integration.
