@@ -2,7 +2,7 @@ blueprint:
   domain: automation
   name: "Sports: Score Monitor"
   description: 'This blueprint will flash one or more lights using the team colors
-    provided by the api, triggered by any score change (optionally ignoring opponent
+    provided by the API, triggered by any score change (optionally ignoring opponent
     scores).'
   input:
     teams:
@@ -65,6 +65,16 @@ blueprint:
           mode: slider
           step: 0.1
       default: 0.8
+    retry_counter:
+      name: Retry Counter
+      description: Counter for retry attempts.
+      selector:
+        number:
+          min: 0
+          max: 3
+          mode: slider
+          step: 1
+      default: 0
 
 variables:
   activate_on_opponent_score: !input activate_on_opponent_score
@@ -81,10 +91,9 @@ trigger:
 
 condition:
 - condition: template
-  value_template: '{{ (states(trigger.entity_id) == "IN") }}'
+  value_template: '{{ states(trigger.entity_id) == "IN" }}'
 - condition: template
-  value_template: '{{ (trigger.id != "oppo_score") or (activate_on_opponent_score
-    == "Yes") }}'
+  value_template: '{{ (trigger.id != "oppo_score") or (activate_on_opponent_score == "Yes") }}'
 
 action:
 - service: media_player.volume_set
@@ -100,41 +109,53 @@ action:
   data:
     snapshot_entities: !input light_targets
     scene_id: team_game_score_lights_capture
+
 - repeat:
-    count: 3
+    count: !input repeat_count
     sequence:
       - service: light.turn_on
         data:
-          rgb_color: >-
+          rgb_color: >
+            {% set color_str = "" %}
             {% if trigger.id != 'oppo_score' %}
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[0][1:3] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[0][3:5] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[0][5:7] | int(base=16) }}
+              {% set color_str = state_attr(trigger.entity_id, 'team_colors')[0] %}
             {% else %}
-              {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[0][1:3] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[0][3:5] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[0][5:7] | int(base=16) }}
+              {% set color_str = state_attr(trigger.entity_id, 'opponent_colors')[0] %}
+            {% endif %}
+            {% if color_str %}
+              {{ [color_str[1:3] | int(base=16), color_str[3:5] | int(base=16), color_str[5:7] | int(base=16)] }}
+            {% else %}
+              [255, 255, 255]  # default white color in case of None
             {% endif %}
         target:
           entity_id: !input light_targets
+
       - delay:
-          seconds: 1.5
-      - service: light.turn_on
-        data:
-          rgb_color: >-
-            {% if trigger.id != 'oppo_score' %}
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[1][1:3] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[1][3:5] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'team_colors').split(", ")[1][5:7] | int(base=16) }}
-            {% else %}
-              {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[1][1:3] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[1][3:5] | int(base=16) }},
-              {{ state_attr(trigger.entity_id, 'opponent_colors').split(", ")[1][5:7] | int(base=16) }}
-            {% endif %}
-        target:
-          entity_id: !input light_targets
-      - delay:
-          seconds: 1.5
-- service: scene.turn_on
-  target:
-    entity_id: scene.team_game_score_lights_capture
+          seconds: 3
+
+- choose:
+    - conditions:
+        - condition: state
+          entity_id: sensor.error_detector
+          state: 'error_occurred'
+      sequence:
+        - service: input_number.increment
+          target:
+            entity_id: input_number.retry_counter
+        - delay: "00:00:30" # Wait for 30 seconds before retrying
+        - condition: numeric_state
+          entity_id: input_number.retry_counter
+          below: 3
+        - service: scene.turn_on
+          target:
+            entity_id: scene.team_game_score_lights_capture
+
+  default:
+    - service: scene.turn_on
+      target:
+        entity_id: scene.team_game_score_lights_capture
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.retry_counter
+      data:
+        value: 0
