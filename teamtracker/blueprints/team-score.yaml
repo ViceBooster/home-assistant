@@ -23,7 +23,7 @@ blueprint:
       name: Activate on opponent score
       description: Enable to flash lights on any score change, disable to only activate
         when your team's score changes. Colors will be those of whichever team has
-        scored. 
+        scored, If the opponent scores a Boo sound will play.
       selector:
         select:
           options:
@@ -67,7 +67,7 @@ blueprint:
       default: 0.8
     retry_counter:
       name: Retry Counter
-      description: Counter for retry attempts.
+      description: Counter for retrying light scene restoration if you have laggy lights like I do
       selector:
         number:
           min: 0
@@ -78,6 +78,7 @@ blueprint:
 
 variables:
   activate_on_opponent_score: !input activate_on_opponent_score
+  boo_sound: "http://23.227.143.154/bbdown/Boo.mp3"
 
 trigger:
 - platform: state
@@ -96,22 +97,40 @@ condition:
   value_template: '{{ (trigger.id != "oppo_score") or (activate_on_opponent_score == "Yes") }}'
 
 action:
-- service: media_player.volume_set
-  data:
-    entity_id: !input media_player_target
-    volume_level: !input volume_level
-- service: media_player.play_media
-  data:
-    entity_id: !input media_player_target
-    media_content_id: !input media_content
-    media_content_type: music
+- choose:
+  - conditions:
+      - condition: template
+        value_template: "{{ trigger.id == 'oppo_score' }}"
+    sequence:
+      - service: media_player.volume_set
+        data:
+          entity_id: !input media_player_target
+          volume_level: !input volume_level
+      - service: media_player.play_media
+        data:
+          entity_id: !input media_player_target
+          media_content_id: "{{ boo_sound }}"
+          media_content_type: music
+  - conditions:
+      - condition: template
+        value_template: "{{ trigger.id == 'team_score' }}"
+    sequence:
+      - service: media_player.volume_set
+        data:
+          entity_id: !input media_player_target
+          volume_level: !input volume_level
+      - service: media_player.play_media
+        data:
+          entity_id: !input media_player_target
+          media_content_id: !input media_content
+          media_content_type: music
 - service: scene.create
   data:
     snapshot_entities: !input light_targets
     scene_id: team_game_score_lights_capture
 
 - repeat:
-    count: !input repeat_count
+    count: 15  # since 30 seconds / 2 seconds per cycle = 15
     sequence:
       - service: light.turn_on
         data:
@@ -131,7 +150,27 @@ action:
           entity_id: !input light_targets
 
       - delay:
-          seconds: 3
+          seconds: 2
+
+      - service: light.turn_on
+        data:
+          rgb_color: >
+            {% set color_str = "" %}
+            {% if trigger.id != 'oppo_score' %}
+              {% set color_str = state_attr(trigger.entity_id, 'team_colors')[1] %}
+            {% else %}
+              {% set color_str = state_attr(trigger.entity_id, 'opponent_colors')[1] %}
+            {% endif %}
+            {% if color_str %}
+              {{ [color_str[1:3] | int(base=16), color_str[3:5] | int(base=16), color_str[5:7] | int(base=16)] }}
+            {% else %}
+              [255, 255, 255]  # default white color in case of None
+            {% endif %}
+        target:
+          entity_id: !input light_targets
+
+      - delay:
+          seconds: 2
 
 - choose:
     - conditions:
