@@ -53,18 +53,6 @@ trigger:
   - platform: state
     entity_id: !input teams
     to: 'IN'
-  - platform: state
-    entity_id: !input teams
-    attribute: kickoff_in
-    to: 'in 1 hour'
-  - platform: state
-    entity_id: !input teams
-    attribute: kickoff_in
-    to: 'in 30 minutes'
-  - platform: state
-    entity_id: !input teams
-    attribute: kickoff_in
-    to: 'in 10 minutes'
 
 action:
   - choose:
@@ -113,10 +101,3 @@ action:
           - service: scene.turn_on
             target:
               entity_id: scene.team_game_start_lights_capture
-      - conditions: "{{ trigger.to_state.attributes.kickoff_in in ['in 1 hour', 'in 30 minutes', 'in 10 minutes'] }}"
-        sequence:
-          - service: tts.google_translate_say
-            data:
-              entity_id: !input media_player_target
-              message: "Attention! The game for {{ state_attr(trigger.entity_id, 'team_name')[0] }} will start {{ trigger.to_state.attributes.kickoff_in }}."
-              language: 'en'
