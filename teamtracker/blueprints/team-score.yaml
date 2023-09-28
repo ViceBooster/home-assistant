@@ -78,7 +78,7 @@ blueprint:
 
 variables:
   activate_on_opponent_score: !input activate_on_opponent_score
-  boo_sound: "http://23.227.143.154/bbdown/Boo.mp3"
+  boo_sound: "Boo.mp3"
 
 trigger:
 - platform: state
