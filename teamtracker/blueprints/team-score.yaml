@@ -78,7 +78,7 @@ blueprint:
 
 variables:
   activate_on_opponent_score: !input activate_on_opponent_score
-  boo_sound: "Boo.mp3"
+  boo_sound: "http://23.227.143.154/bbdown/Boo.mp3"
 
 trigger:
 - platform: state
@@ -96,7 +96,7 @@ condition:
 - condition: template
   value_template: '{{ (trigger.id != "oppo_score") or (activate_on_opponent_score == "Yes") }}'
 
-action:
+action:  
 - choose:
   - conditions:
       - condition: template
@@ -106,11 +106,36 @@ action:
         data:
           entity_id: !input media_player_target
           volume_level: !input volume_level
+      
+      - service: media_player.play_media
+        target:
+          entity_id: !input media_player_target  # Replace with your media player's entity ID
+        data_template:
+          media_content_id: >
+            {%- set message = "The " ~ state_attr(trigger.entity_id, 'opponent_name') ~ " have scored!" -%}
+            media-source://tts/google_translate?message={{ message|replace(' ', '+') }}&language=en-gb
+          media_content_type: provider
+          metadata:
+            title_template: "{{ message }}"
+            thumbnail: https://brands.home-assistant.io/_/google_translate/logo.png
+            media_class: app
+            children_media_class: null
+            navigateIds:
+                - {}
+                - media_content_type: app
+                  media_content_id: media-source://tts
+                - media_content_type: provider
+                  media_content_id_template: "media-source://tts/google_translate?message={{ message|replace(' ', '+') }}&language=en-gb"
+
+      - delay:
+          seconds: 3.5
+
       - service: media_player.play_media
         data:
           entity_id: !input media_player_target
           media_content_id: "{{ boo_sound }}"
           media_content_type: music
+
   - conditions:
       - condition: template
         value_template: "{{ trigger.id == 'team_score' }}"
@@ -120,17 +145,41 @@ action:
           entity_id: !input media_player_target
           volume_level: !input volume_level
       - service: media_player.play_media
+        target:
+          entity_id: !input media_player_target  # Replace with your media player's entity ID
+        data_template:
+          media_content_id: >
+            {%- set message = "The " ~ state_attr(trigger.entity_id, 'team_name') ~ " scored!" -%}
+            media-source://tts/google_translate?message={{ message|replace(' ', '+') }}&language=en-gb
+          media_content_type: provider
+          metadata:
+            title_template: "{{ message }}"
+            thumbnail: https://brands.home-assistant.io/_/google_translate/logo.png
+            media_class: app
+            children_media_class: null
+            navigateIds:
+                - {}
+                - media_content_type: app
+                  media_content_id: media-source://tts
+                - media_content_type: provider
+                  media_content_id_template: "media-source://tts/google_translate?message={{ message|replace(' ', '+') }}&language=en-gb"
+
+      - delay:
+          seconds: 3.5
+
+      - service: media_player.play_media
         data:
           entity_id: !input media_player_target
           media_content_id: !input media_content
           media_content_type: music
+
 - service: scene.create
   data:
     snapshot_entities: !input light_targets
     scene_id: team_game_score_lights_capture
-
+    
 - repeat:
-    count: 15  # since 30 seconds / 2 seconds per cycle = 15
+    count: 2  # since 30 seconds / 2 seconds per cycle = 15
     sequence:
       - service: light.turn_on
         data:
@@ -150,7 +199,7 @@ action:
           entity_id: !input light_targets
 
       - delay:
-          seconds: 2
+          seconds: 1.5
 
       - service: light.turn_on
         data:
@@ -170,8 +219,8 @@ action:
           entity_id: !input light_targets
 
       - delay:
-          seconds: 2
-
+          seconds: 1.5
+          
 - choose:
     - conditions:
         - condition: state
